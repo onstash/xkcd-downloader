@@ -1,69 +1,66 @@
-import urllib2
-from bs4 import BeautifulSoup
+import urllib
+from bs4 import BeautifulSoup as Soup
 import os
+import time
 
-xkcd_url = "http://xkcd.com"
-url = "http://xkcd.com/163"
+url = "http://xkcd.com/archive"
+explain = "http://www.explainxkcd.com/wiki/index.php/"
+save = "/home/santosh/xkcd"
+comic_list = list()
 
-def download_xkcd(url):
-	if not url=="http://xkcd.com/404":
-		response = urllib2.urlopen(url)
-		content = response.read()
-		soup = BeautifulSoup(content)
 
-	comic_num = url[16:]
-	for links in soup.find_all('img'):
-		if "comics" in links.get('src'):
-			comic_url = links.get('src')
-			comic_title = links.get('alt')
-			comic_desc = links.get('title')
-	
-	comic_title = comic_title.replace("/"," (or) ")
-	xkcd_path = '/home/santosh/xkcd'
-	if not os.path.exists(xkcd_path):
-		print "\n\tCreating directory \'" + xkcd_path + "\'..."
-		os.mkdir(xkcd_path)
-	
-	comic_path = ""
-	comic_path = xkcd_path + "/" + str(comic_num)
-	if not os.path.exists(comic_path):
-		print "\n\tCreating directory \'" + comic_path + "\'..."
-		os.mkdir(comic_path)
+def get_soup(url):
+	content = urllib.urlopen(url).read()
+	soup = Soup(content)
+	return soup
+def get_details(soup):
+	link_list = soup.find_all('a')
+	for comic in link_list:
+		if comic.get('href')[1:-1].isdigit():
+			comic_link = url[:15]+comic.get('href')
+			comic_set = (comic.get('href')[1:-1],comic.get('title'),url[:15]+comic.get('href'),comic.text.replace("/", " (or) "))
+			comic_list.append(comic_set)
+	return comic_list
 
-	comic_response = urllib2.urlopen(comic_url)
-	comic_content = comic_response.read()
-	comic_file = ""
-	comic_file = comic_path + "/" + comic_title + comic_url[-4:]
-	if not os.path.exists(comic_file):
-		print "\n\tDownloading comic \'" + comic_title + "\'..."
-		f = open(comic_file,"w")
-		f.write(comic_content)
-		f.close()
-		print "\n\tComic \'" + comic_title + "\' successfully downloaded!"
-	comic_prev_link = ""
-	comic_prev = ""
-	comic_next_link = ""
-	comic_next = ""
-	for links in soup.find_all('a'):
-		if not links.get('rel') == None:
-			if not links.get('accesskey') == None:
-				if 'p' in links.get('accesskey'):
-					comic_prev_link = links.get('href')
-					comic_prev = xkcd_url + links.get('href')
-				#if 'n' in links.get('accesskey'):
-					#comic_next_link = links.get('href')
-					#comic_next = xkcd_url + links.get('href')
+def comic_download(comic_list):
+	max_range = int(comic_list[0][0])
+	print "Latest comic : " + str(max_range)
+	for num in xrange(0,max_range):
+		comic_num = comic_list[num][0]
+		comic_date = comic_list[num][1]
+		comic_link = comic_list[num][2]
+		comic_title = comic_list[num][3]
+		comic_content = urllib.urlopen(comic_link).read()
+		comic_soup = Soup(comic_content)
+		comic_img = comic_soup.find_all('img')[1].get('src')
+		comic_desc = comic_soup.find_all('img')[1].get('title')
+		comic_explain = explain + comic_num
+		file_name = comic_num + "_" + comic_title + "_" + comic_date + comic_img[-4:]
+		#comic_content.close()
+		if not os.path.exists(save):
+			print "\n\tCreating Directory : " + save
+			os.mkdir(save)
 
-	#if not comic_next_link == "#":
-		#print "\n\t Next - " + comic_next
-	if not comic_prev_link == "#":
-		print "\n\t\t\t Prev Comic link- " + comic_prev
-		download_xkcd(comic_prev)
-	else:
-		print "\n\n\t\t All comics downloaded successfully! XKCD!"
+		if not os.path.exists(save+'/'+'comics'):
+			print "\n\tCreating Directory : " + save + '/' + 'comics'
+			os.mkdir(save+'/'+'comics')
+
+		if not os.path.exists(save+'/comics/' + file_name):
+			img = urllib.urlopen(comic_img).read()
+			print "\n\tDownloading comic #" + comic_num + " - " + save + "/comics/" + file_name
+			comic = open(save+'/'+'comics'+'/'+file_name,"w")
+			comic.write(img)
+			comic.close()
+			time.sleep(5)
+		else:
+			print "\n\tSkipping comic #" + comic_num + " - " + save + "/comics/" + file_name
+			print "\t\tReason - File already exists!"
 
 def main():
-	download_xkcd(url)
+	print "\t\t\txkcd Comic Downloader v0.1a\n\n"
+	soup = get_soup(url)
+	comic_list = get_details(soup)
+	comic_download(comic_list)
 
 if __name__ == '__main__':
 	main()
