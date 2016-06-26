@@ -5,7 +5,7 @@ import time
 
 url = "http://xkcd.com/archive"
 explain = "http://www.explainxkcd.com/wiki/index.php/"
-save = "/home/santosh/xkcd"
+save = ""	#no directory (/home/santosh/xkcd) exists. Made a generic one in main
 comic_list = list()
 
 
@@ -22,7 +22,8 @@ def get_details(soup):
 			comic_list.append(comic_set)
 	return comic_list
 
-def comic_download(comic_list,min_range,max_range): 
+def comic_download(comic_list,min_range,max_range):
+	global save # save is not a local variable
 	if min_range==0 and max_range==1:
 		#Download Latest comic
 		for num in xrange(min_range,max_range):
@@ -39,11 +40,11 @@ def comic_download(comic_list,min_range,max_range):
 			#comic_content.close()
 			if not os.path.exists(save):
 				print "\n\tCreating Directory : " + save
-				os.mkdir(save)
+				os.makedirs(save)
 
 			if not os.path.exists(save+'/'+'comics'):
 				print "\n\tCreating Directory : " + save + '/' + 'comics'
-				os.mkdir(save+'/'+'comics')
+				os.makedirs(save+'/'+'comics')
 
 			if not os.path.exists(save+'/comics/' + file_name):
 				img = urllib.urlopen(comic_img).read()
@@ -70,11 +71,11 @@ def comic_download(comic_list,min_range,max_range):
 			#comic_content.close()
 			if not os.path.exists(save):
 				print "\n\tCreating Directory : " + save
-				os.mkdir(save)
+				os.makedirs(save)	# replaced os.mkdir with os.makedirs
 
 			if not os.path.exists(save+'/'+'comics'):
 				print "\n\tCreating Directory : " + save + '/' + 'comics'
-				os.mkdir(save+'/'+'comics')
+				os.makedirs(save+'/'+'comics')
 
 			if not os.path.exists(save+'/comics/' + file_name):
 				img = urllib.urlopen(comic_img).read()
@@ -93,10 +94,14 @@ def main():
 	comic_list = get_details(soup)
 	comic_range = int(comic_list[0][0])
 	print "\tLatest Comic\t:\t#" + str(comic_range) + "\n"
+	username = raw_input("Enter username : ")
+	# Making save global and creating generic directory
+	global save
+	save = "/home/" + username + "/xkcd"
 	print "Options:-\n\t1.Download all comics.\n\t2.Download specific set of comics.\n\t3.Download Latest Comic"
 	choice = raw_input("Enter your choice : ")
 	if choice=="1":
-		comic_download(comic_list,0,max_range)
+		comic_download(comic_list,0,comic_range)	# Max range should be the latest comic number
 	elif choice=="2":
 		min_range = raw_input("Enter the initial comic number : ")
 		min_range = int(min_range)
